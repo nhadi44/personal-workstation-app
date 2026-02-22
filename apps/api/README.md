@@ -25,6 +25,60 @@
 
 [Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
 
+## Authentication & Authorization Architecture
+
+This API implements a security-first architecture with strict NestJS layering:
+
+- Controller -> Service -> Repository pattern
+- JWT access token + refresh token rotation
+- Refresh session storage in Redis
+- Mandatory TOTP-based 2FA for password sign-in
+- RBAC with roles: `SUPERADMIN`, `ADMIN`, `USER`
+- OAuth sign-in with Google and Microsoft via Passport strategies
+- Account linking by verified email to prevent duplicates
+
+### Core modules
+
+- `src/modules/auth`: sign-up, sign-in, 2FA challenge/verify, refresh, logout, OAuth callbacks
+- `src/modules/users`: protected profile and role management endpoints
+- `src/modules/sessions`: Redis-backed refresh session repository and rotation logic
+- `src/modules/two-factor`: TOTP generation/verification + email OTP adapter TODO
+- `src/modules/oauth`: provider account lookup/linking and user matching
+- `src/common`: guards, decorators, role enum, auth constants
+
+### Security behavior
+
+- Refresh token transport: HttpOnly cookie (`refresh_token`) scoped to `/auth/refresh`
+- Access token transport: response body token for Bearer header usage
+- Token rotation: every refresh issues a new refresh token and overwrites Redis hash
+- Reuse detection: mismatched refresh token hash triggers all-session revocation for that user
+- Password hashing: bcrypt with configurable rounds (`BCRYPT_ROUNDS`)
+
+### Required environment variables
+
+Configure in root `.env` based on `.env.example`:
+
+- `JWT_ACCESS_SECRET`
+- `JWT_REFRESH_SECRET`
+- `JWT_CHALLENGE_SECRET`
+- `JWT_SETUP_SECRET`
+- `REDIS_URL`
+- `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALLBACK_URL`
+- `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`, `MICROSOFT_CALLBACK_URL`
+
+### API auth flow
+
+1. `POST /api/auth/signup` returns TOTP setup artifacts + setup token
+2. `POST /api/auth/2fa/enable` verifies setup OTP and issues tokens
+3. `POST /api/auth/signin` returns 2FA challenge token
+4. `POST /api/auth/2fa/verify` verifies OTP and issues tokens
+5. `POST /api/auth/refresh` rotates refresh token in cookie
+
+### RBAC usage
+
+- Use `@Roles(Role.ADMIN)` / `@Roles(Role.SUPERADMIN)` decorators on handlers
+- Global guards enforce JWT auth and role checks
+
 ## Project setup
 
 ```bash

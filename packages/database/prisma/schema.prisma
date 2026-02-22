@@ -9,10 +9,40 @@ datasource db {
     // url dan directUrl DIHAPUS dari sini
 }
 
+enum Role {
+    SUPERADMIN
+    ADMIN
+    USER
+}
+
+enum OAuthProvider {
+    GOOGLE
+    MICROSOFT
+}
+
 model User {
-    id        String   @id @default(uuid())
-    email     String   @unique
-    password  String
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+    id               String         @id @default(uuid())
+    email            String         @unique
+    password         String
+    role             Role           @default(USER)
+    twoFactorEnabled Boolean        @default(false)
+    twoFactorSecret  String?
+    oauthAccounts    OAuthAccount[]
+    createdAt        DateTime       @default(now())
+    updatedAt        DateTime       @updatedAt
+}
+
+model OAuthAccount {
+    id                String        @id @default(uuid())
+    userId            String
+    provider          OAuthProvider
+    providerAccountId String
+    email             String?
+    createdAt         DateTime      @default(now())
+    updatedAt         DateTime      @updatedAt
+
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@unique([provider, providerAccountId])
+    @@index([userId])
 }
