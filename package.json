@@ -19,12 +19,11 @@
     "lint-staged": "^16.2.7"
   },
   "lint-staged": {
-    "apps/**/*.{js,ts,tsx}": [
-      "eslint --fix",
-      "prettier --write"
-    ],
-    "packages/**/*.{js,ts,tsx}": [
-      "prettier --write"
+    "**/*.{js,ts,tsx,json,md,css}": [
+      "pnpm exec prettier --write"
     ]
+  },
+  "devDependencies": {
+    "prettier": "^3.8.1"
   }
 }
